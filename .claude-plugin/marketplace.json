@@ -1,0 +1,13 @@
+{
+  "name": "dafahaha-skills",
+  "owner": {
+    "name": "Daizhi Liao (dafahaha)"
+  },
+  "plugins": [
+    {
+      "name": "policy-parity",
+      "source": "./",
+      "description": "Offline action-drift checker comparing FP32 and quantized policy action CSVs (per-dim MAE, max |delta|, cosine; PASS/WATCH/FAIL)."
+    }
+  ]
+}
