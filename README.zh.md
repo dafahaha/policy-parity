@@ -74,7 +74,7 @@ python skills/policy-parity/scripts/policy_parity.py ref_actions.csv quant_actio
 python -m pytest tests/ -q
 ```
 
-42 个测试，仅标准库；人工谓词变异抽查（翻转余弦闸门会使余弦 FAIL 测试变红；记录在
+46 个测试，仅标准库；人工谓词变异抽查（翻转余弦闸门会使余弦 FAIL 测试变红；记录在
 CHANGELOG）。
 
 ## 限制（诚实披露）

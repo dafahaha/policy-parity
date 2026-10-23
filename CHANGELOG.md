@@ -1,5 +1,23 @@
 # Changelog — policy-parity
 
+v1.3.0 — 2026-10-23
+
+## Round-5 independent technical review (fresh reviewer, cold reading)
+- P1-1 (fixed): argparse usage errors (missing positional, invalid type) exited
+  2, colliding with the WATCH exit code; a custom parser now exits 1 for usage
+  errors (--help still exits 0).
+- P2-1 (fixed): action streams were paired only by position; two files with the
+  same column count but renamed/reordered columns are now rejected via a
+  column-name set comparison (ShapeMismatchError, exit 3).
+- P2-2 (fixed): broadened the CLI catch to OSError (PermissionError, etc.).
+- P2-3 (fixed): `--output` write is inside the try (clean exit 1 on bad path).
+- P2-4 (fixed): a row wider than the header (extra fields) now raises instead of
+  being silently dropped.
+- P2-5 (fixed): a file with only index-like headers (e.g. a bare `step` column)
+  now raises "no action columns" instead of treating row numbers as actions.
+- New tests: column-name mismatch, extra-wide row, index-only file, usage exit 1.
+  Suite: 42 -> 46.
+
 v1.0.0 — 2026-10-22
 
 ## v1 (baseline)

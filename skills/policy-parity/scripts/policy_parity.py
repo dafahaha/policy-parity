@@ -43,9 +43,11 @@ class ShapeMismatchError(ValueError):
 # Loading
 # --------------------------------------------------------------------------- #
 
-def load_action_matrix(path: Path, index_column: str | None) -> tuple[list[str], list[list[float]]]:
-    """Return (row_labels, matrix). With an index column, labels = that column;
-    otherwise labels are positional indices as strings."""
+def load_action_matrix(
+    path: Path, index_column: str | None
+) -> tuple[list[str], list[list[float]], list[str]]:
+    """Return (row_labels, matrix, action_column_names). With an index column,
+    labels = that column; otherwise labels are positional indices as strings."""
     with path.open("r", newline="", encoding="utf-8-sig") as fh:
         reader = csv.DictReader(fh)
         if reader.fieldnames is None:
@@ -56,9 +58,16 @@ def load_action_matrix(path: Path, index_column: str | None) -> tuple[list[str],
                 raise ValueError(f"{path.name}: index column {index_column!r} not in {fields}")
             value_cols = [f for f in fields if f != index_column]
         else:
-            value_cols = [f for f in fields if f.lower() not in INDEX_NAMES]
-            if not value_cols:
-                value_cols = fields  # nothing looks like an index; use everything
+            non_index = [f for f in fields if f.lower() not in INDEX_NAMES]
+            if non_index:
+                value_cols = non_index
+            elif len(fields) == 1:
+                # Exactly one unnamed/non-index column: it is the action stream.
+                value_cols = fields
+            else:
+                # Only index-like columns (e.g. a bare `step` file): there is no
+                # action data; do not treat row numbers as actions.
+                raise ValueError(f"{path.name}: no action columns (only index-like headers)")
         if not value_cols:
             raise ValueError(f"{path.name}: no action columns")
         labels: list[str] = []
@@ -66,6 +75,13 @@ def load_action_matrix(path: Path, index_column: str | None) -> tuple[list[str],
         for i, row in enumerate(reader, start=2):  # row 1 is header
             if not any(str(c).strip() for c in row.values()):
                 continue
+            # Extra fields beyond the header (a row wider than the header) are
+            # ragged input; reject instead of silently dropping them.
+            extra = row.get(None)
+            if extra is not None and any(str(c).strip() for c in extra):
+                raise ShapeMismatchError(
+                    f"{path.name} row {i}: {len(extra)} extra field(s) beyond the header (ragged row)"
+                )
             labels.append(str(row[index_column]).strip() if index_column else str(i - 2))
             vec: list[float] = []
             for col in value_cols:
@@ -89,14 +105,24 @@ def load_action_matrix(path: Path, index_column: str | None) -> tuple[list[str],
     dims = {len(r) for r in matrix}
     if len(dims) != 1:
         raise ShapeMismatchError(f"{path.name}: ragged rows (dimension count varies: {sorted(dims)})")
-    return labels, matrix
+    return labels, matrix, value_cols
 
 
 def align(ref_labels: list[str], ref: list[list[float]],
           q_labels: list[str], q: list[list[float]],
-          labeled: bool = False) -> list[tuple[list[float], list[float]]]:
+          labeled: bool = False,
+          ref_cols: list[str] | None = None,
+          q_cols: list[str] | None = None) -> list[tuple[list[float], list[float]]]:
     """Align two matrices by index label when a real index column was given
-    (labeled=True); otherwise positional. Fail closed on length/label mismatch."""
+    (labeled=True); otherwise positional. Fail closed on length/label mismatch
+    and on action-column name-set mismatch (same count but reordered/renamed
+    streams would otherwise be compared positionally and could hide drift)."""
+    if ref_cols is not None and q_cols is not None and set(ref_cols) != set(q_cols):
+        missing = sorted(set(ref_cols) - set(q_cols))[:5]
+        extra = sorted(set(q_cols) - set(ref_cols))[:5]
+        raise ShapeMismatchError(
+            f"action columns differ; missing in quantized: {missing}; extra: {extra}"
+        )
     if labeled:
         if len(ref_labels) != len(set(ref_labels)):
             dupes = sorted({l for l in ref_labels if ref_labels.count(l) > 1})[:5]
@@ -279,8 +305,17 @@ def format_report(res: dict, ref_name: str, q_name: str) -> str:
     return "\n".join(lines) + "\n"
 
 
+class _Parser(argparse.ArgumentParser):
+    """ArgumentParser whose usage errors exit 1 (argparse default is 2, which
+    collides with the WATCH exit code). --help still exits 0."""
+
+    def error(self, message: str) -> None:
+        self.print_usage(sys.stderr)
+        self.exit(1, f"{self.prog}: error: {message}\n")
+
+
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(description="Offline FP32-vs-quantized action parity checker (stdlib).")
+    ap = _Parser(description="Offline FP32-vs-quantized action parity checker (stdlib).")
     ap.add_argument("reference", help="reference (FP32) action CSV")
     ap.add_argument("quantized", help="quantized/exported action CSV")
     ap.add_argument("--index-column", default=None, help="shared row index column (e.g. step)")
@@ -291,27 +326,30 @@ def main(argv: list[str] | None = None) -> int:
     args = ap.parse_args(argv)
 
     if not (math.isfinite(args.tol) and args.tol > 0):
-        raise SystemExit("policy-parity: --tol must be a finite number > 0 (action units)")
+        print("policy-parity: --tol must be a finite number > 0 (action units)", file=sys.stderr)
+        return 1
     if not (math.isfinite(args.cos_min) and 0 < args.cos_min <= 1):
-        raise SystemExit("policy-parity: --cos-min must be a finite number in (0, 1]")
+        print("policy-parity: --cos-min must be a finite number in (0, 1]", file=sys.stderr)
+        return 1
 
     try:
-        r_labels, r_mat = load_action_matrix(Path(args.reference), args.index_column)
-        q_labels, q_mat = load_action_matrix(Path(args.quantized), args.index_column)
-        pairs = align(r_labels, r_mat, q_labels, q_mat, labeled=bool(args.index_column))
+        r_labels, r_mat, r_cols = load_action_matrix(Path(args.reference), args.index_column)
+        q_labels, q_mat, q_cols = load_action_matrix(Path(args.quantized), args.index_column)
+        pairs = align(r_labels, r_mat, q_labels, q_mat, labeled=bool(args.index_column),
+                      ref_cols=r_cols, q_cols=q_cols)
         res = parity_verdict(pairs, args.tol, args.cos_min)
+        rendered = json.dumps(res, indent=2, ensure_ascii=False) if args.json else \
+            format_report(res, args.reference, args.quantized)
+        if args.output:
+            Path(args.output).write_text(rendered + "\n", encoding="utf-8")
+        else:
+            print(rendered)
     except ShapeMismatchError as exc:
         print(f"policy-parity: FAIL (shape mismatch): {exc}", file=sys.stderr)
         return 3
-    except (ValueError, FileNotFoundError) as exc:
+    except (ValueError, OSError) as exc:
         print(f"policy-parity: error: {exc}", file=sys.stderr)
         return 1
-
-    rendered = json.dumps(res, indent=2, ensure_ascii=False) if args.json else format_report(res, args.reference, args.quantized)
-    if args.output:
-        Path(args.output).write_text(rendered + "\n", encoding="utf-8")
-    else:
-        print(rendered)
 
     return {"PASS": 0, "WATCH": 2, "FAIL": 3}[res["verdict"]]
 

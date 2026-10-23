@@ -85,7 +85,7 @@ python skills/policy-parity/scripts/policy_parity.py ref_actions.csv quant_actio
 python -m pytest tests/ -q
 ```
 
-42 tests, stdlib only; manual predicate-mutation spot checks (inverting the cosine
+46 tests, stdlib only; manual predicate-mutation spot checks (inverting the cosine
 gate turns the cosine-FAIL test red; recorded in CHANGELOG).
 
 ## Limits (honest)

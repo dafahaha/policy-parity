@@ -30,23 +30,25 @@ def _write(path: Path, header: list[str], rows: list[list]) -> None:
 def test_load_matrix_basic(tmp_path: Path):
     p = tmp_path / "ref.csv"
     _write(p, ["step", "a0", "a1"], [[0, 1.0, 2.0], [1, 3.0, 4.0]])
-    labels, mat = pp.load_action_matrix(p, None)
+    labels, mat, cols = pp.load_action_matrix(p, None)
     assert labels == ["0", "1"]
     assert mat == [[1.0, 2.0], [3.0, 4.0]]
+    assert cols == ["a0", "a1"]
 
 
 def test_load_matrix_with_index_column(tmp_path: Path):
     p = tmp_path / "ref.csv"
     _write(p, ["step", "a0"], [[7, 1.0], [9, 2.0]])
-    labels, mat = pp.load_action_matrix(p, "step")
+    labels, mat, cols = pp.load_action_matrix(p, "step")
     assert labels == ["7", "9"]
     assert mat == [[1.0], [2.0]]
+    assert cols == ["a0"]
 
 
 def test_load_bom_and_blank_rows(tmp_path: Path):
     p = tmp_path / "ref.csv"
     p.write_bytes("﻿step,a0\r\n0,1\r\n\r\n1,2\r\n".encode("utf-8"))
-    _, mat = pp.load_action_matrix(p, "step")
+    _, mat, _ = pp.load_action_matrix(p, "step")
     assert mat == [[1.0], [2.0]]
 
 
@@ -296,27 +298,23 @@ def test_duplicate_index_label_raises():
 
 def test_arg_tol_must_be_positive(tmp_path: Path):
     r, q = _two_files(tmp_path, [[0, 0.1]], [[0, 0.1]])
-    with pytest.raises(SystemExit):
-        pp.main([str(r), str(q), "--tol", "0"])
+    assert pp.main([str(r), str(q), "--tol", "0"]) == 1
 
 
 def test_arg_cos_min_range(tmp_path: Path):
     r, q = _two_files(tmp_path, [[0, 0.1]], [[0, 0.1]])
-    with pytest.raises(SystemExit):
-        pp.main([str(r), str(q), "--cos-min", "1.5"])
+    assert pp.main([str(r), str(q), "--cos-min", "1.5"]) == 1
 
 
 def test_arg_tol_rejects_nan(tmp_path: Path):
-    # P3-2: a non-finite tol must be rejected cleanly, not invert the gate.
+    # A non-finite tol must be rejected cleanly (exit 1), not invert the gate.
     r, q = _two_files(tmp_path, [[0, 0.1]], [[0, 0.1]])
-    with pytest.raises(SystemExit):
-        pp.main([str(r), str(q), "--tol", "nan"])
+    assert pp.main([str(r), str(q), "--tol", "nan"]) == 1
 
 
 def test_arg_cos_min_rejects_nan(tmp_path: Path):
     r, q = _two_files(tmp_path, [[0, 0.1]], [[0, 0.1]])
-    with pytest.raises(SystemExit):
-        pp.main([str(r), str(q), "--cos-min", "nan"])
+    assert pp.main([str(r), str(q), "--cos-min", "nan"]) == 1
 
 
 def test_column_named_t_is_excluded_without_index_column(tmp_path: Path):
@@ -324,12 +322,49 @@ def test_column_named_t_is_excluded_without_index_column(tmp_path: Path):
     # the user passes --index-column explicitly.
     p = tmp_path / "ref.csv"
     _write(p, ["step", "t", "a0"], [[0, 0.5, 1.0], [1, 0.6, 3.0]])
-    _, mat = pp.load_action_matrix(p, None)
+    _, mat, _ = pp.load_action_matrix(p, None)
     assert mat == [[1.0], [3.0]]  # both step and t dropped; only a0 remains
 
 
 def test_column_named_t_kept_with_explicit_index(tmp_path: Path):
     p = tmp_path / "ref.csv"
     _write(p, ["step", "t", "a0"], [[0, 0.5, 1.0], [1, 0.6, 3.0]])
-    _, mat = pp.load_action_matrix(p, "step")
+    _, mat, _ = pp.load_action_matrix(p, "step")
     assert mat == [[0.5, 1.0], [0.6, 3.0]]  # explicit index keeps t as an action dim
+
+
+# ---- R5 review: column-name mismatch, extra-wide row, usage exit 1, index-only ----
+
+def test_column_name_mismatch_raises(tmp_path: Path):
+    r = tmp_path / "ref.csv"
+    q = tmp_path / "q.csv"
+    _write(r, ["step", "a0", "a1"], [[0, 1.0, 2.0]])
+    _write(q, ["step", "a0", "b1"], [[0, 1.0, 2.0]])  # same count, renamed column
+    with pytest.raises(pp.ShapeMismatchError, match="action columns differ"):
+        rl, rm, rc = pp.load_action_matrix(r, None)
+        ql, qm, qc = pp.load_action_matrix(q, None)
+        pp.align(rl, rm, ql, qm, ref_cols=rc, q_cols=qc)
+
+
+def test_extra_wide_row_raises(tmp_path: Path):
+    p = tmp_path / "ref.csv"
+    # A row with more fields than the header.
+    p.write_text("step,a0\n0,1,9\n", encoding="utf-8")
+    with pytest.raises(pp.ShapeMismatchError, match="extra field"):
+        pp.load_action_matrix(p, None)
+
+
+def test_index_only_file_raises(tmp_path: Path):
+    p = tmp_path / "ref.csv"
+    _write(p, ["step", "index"], [[0, 1]])
+    with pytest.raises(ValueError, match="no action columns"):
+        pp.load_action_matrix(p, None)
+
+
+def test_usage_error_exits_one():
+    with pytest.raises(SystemExit) as e:
+        pp.main([])
+    assert e.value.code == 1
+    with pytest.raises(SystemExit) as e:
+        pp.main(["only-one-file"])
+    assert e.value.code == 1
