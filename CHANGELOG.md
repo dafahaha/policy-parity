@@ -1,5 +1,13 @@
 # Changelog — policy-parity
 
+v1.8.1 — 2026-10-23
+
+## Round-11 independent clean review (fresh reviewer, cold reading)
+- P2-1 (fixed): `--index-column` is stripped of surrounding whitespace before
+  lookup, so a `" step "` value resolves the same as `"step"` instead of failing
+  a precise header lookup with an inconsistent error message.
+- Suite: 53 pytest (1 added).
+
 v1.8.0 — 2026-10-23
 - P2-1 (fixed): removed an unreachable dead branch in the auto-detection path
   after the single-index-column guard was added.

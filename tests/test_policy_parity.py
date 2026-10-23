@@ -277,6 +277,16 @@ def test_cli_index_column_aligns_out_of_order(tmp_path: Path, capsys):
     assert "PASS" in out
 
 
+def test_cli_index_column_whitespace_stripped(tmp_path: Path, capsys):
+    # R11 P2-1: a " step " value is stripped before lookup and aligns.
+    r = tmp_path / "ref.csv"
+    q = tmp_path / "q.csv"
+    _write(r, ["step", "a0"], [[1, 0.1], [0, 0.2]])
+    _write(q, ["step", "a0"], [[0, 0.2001], [1, 0.1001]])
+    code = pp.main([str(r), str(q), "--index-column", " step ", "--tol", "0.005"])
+    assert code == 0
+
+
 # ---- Round-1 review: NaN fail-closed + undefined cosine + validation ----
 
 def test_load_rejects_nan_cell(tmp_path: Path):

@@ -354,10 +354,13 @@ def main(argv: list[str] | None = None) -> int:
     args = ap.parse_args(argv)
 
     # An explicit empty string is not the same as "no index column" (None);
-    # reject it rather than silently switching to auto-detection.
-    if args.index_column is not None and args.index_column.strip() == "":
-        print("policy-parity: --index-column must name a header, got an empty string", file=sys.stderr)
-        return 1
+    # reject it rather than silently switching to auto-detection. Strip a
+    # surrounding-whitespace value so the lookup uses the normalized header.
+    if args.index_column is not None:
+        args.index_column = args.index_column.strip()
+        if args.index_column == "":
+            print("policy-parity: --index-column must name a header, got an empty string", file=sys.stderr)
+            return 1
 
     if not (math.isfinite(args.tol) and args.tol > 0):
         print("policy-parity: --tol must be a finite number > 0 (action units)", file=sys.stderr)

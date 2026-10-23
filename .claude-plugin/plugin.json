@@ -1,6 +1,6 @@
 {
   "name": "policy-parity",
-  "version": "1.8.0",
+  "version": "1.8.1",
   "description": "Offline FP32-vs-quantized action-drift checker for exported RL policy CSVs: per-dim MAE, max |delta|, cosine, PASS/WATCH/FAIL. No torch/onnx import, stdlib only.",
   "author": {
     "name": "Daizhi Liao (dafahaha)"
