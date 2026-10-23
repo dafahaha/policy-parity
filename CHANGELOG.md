@@ -1,5 +1,14 @@
 # Changelog — policy-parity
 
+v1.8.2 — 2026-10-23
+
+## Round-12 independent clean review (fresh reviewer, cold reading)
+- P2 (fixed, fail-closed): huge action magnitudes could overflow the squared-norm
+  accumulation to Inf, making the flattened cosine NaN; NaN comparisons are
+  always false, so the cosine floor was silently bypassed. A non-finite cosine
+  (and a non-finite max |delta|) now FAILs with a clean reason.
+- Suite: 54 pytest (1 added).
+
 v1.8.1 — 2026-10-23
 
 ## Round-11 independent clean review (fresh reviewer, cold reading)

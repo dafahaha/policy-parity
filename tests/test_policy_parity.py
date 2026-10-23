@@ -318,6 +318,16 @@ def test_undefined_cosine_asymmetric_zero_is_fail():
     assert any("cosine undefined" in r for r in res["reasons"])
 
 
+def test_verdict_fail_on_overflow_cosine():
+    # Huge action magnitudes overflow the squared-norm accumulation to Inf,
+    # making the cosine NaN; fail closed instead of silently passing the floor.
+    big = 1e155
+    pairs = [([big], [big])]
+    res = pp.parity_verdict(pairs, 0.05, 0.99)
+    assert res["verdict"] == "FAIL"
+    assert any("non-finite" in r for r in res["reasons"])
+
+
 def test_duplicate_index_label_raises():
     # P3-1: duplicate labels must fail closed instead of last-wins silently.
     with pytest.raises(pp.ShapeMismatchError, match="duplicate index label"):

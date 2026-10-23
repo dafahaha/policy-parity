@@ -272,6 +272,17 @@ def parity_verdict(
                 "an all-zero reference or quantized stream makes parity "
                 "unverifiable — check the dump before deploying"
             )
+    if not math.isfinite(max_dev):
+        # |x-y| can overflow to Inf even when every individual cell is finite.
+        reasons.append("max |delta| is non-finite (overflow); clean/rescale the action log before comparing")
+    if cos is not None and not math.isfinite(cos):
+        # Squared-norm accumulation can overflow to Inf and make the cosine NaN;
+        # NaN < floor is always false, so fail closed instead of silently
+        # passing the cosine floor.
+        reasons.append(
+            "cosine is non-finite (action magnitudes overflowed the norm "
+            "accumulation); clean/rescale the action log before comparing"
+        )
 
     if reasons:
         level = "FAIL"
