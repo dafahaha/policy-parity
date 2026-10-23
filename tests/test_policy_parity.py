@@ -92,6 +92,15 @@ def test_align_label_mismatch_raises():
         pp.align(["a", "b"], [[1.0]], ["a", "c"], [[1.0]], labeled=True)
 
 
+def test_align_column_order_permutation_raises():
+    # Same set of action columns, different order: must not be paired positionally.
+    with pytest.raises(pp.ShapeMismatchError, match="column order differs"):
+        pp.align(
+            [], [[1.0, 2.0]], [], [[3.0, 4.0]],
+            ref_cols=["x", "y"], q_cols=["y", "x"],
+        )
+
+
 def test_align_length_mismatch_raises():
     with pytest.raises(ValueError, match="row count differs"):
         pp.align([], [[1.0], [2.0]], [], [[1.0]])

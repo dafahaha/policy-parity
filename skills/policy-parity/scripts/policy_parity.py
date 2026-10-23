@@ -117,9 +117,17 @@ def align(ref_labels: list[str], ref: list[list[float]],
     (labeled=True); otherwise positional. Fail closed on length/label mismatch
     and on action-column name-set mismatch (same count but reordered/renamed
     streams would otherwise be compared positionally and could hide drift)."""
-    if ref_cols is not None and q_cols is not None and set(ref_cols) != set(q_cols):
+    # Ordered comparison: catches both renamed columns (set differs) and a
+    # permutation (same set, different order) — a reorder would otherwise be
+    # paired positionally and silently compare the wrong streams.
+    if ref_cols is not None and q_cols is not None and ref_cols != q_cols:
         missing = sorted(set(ref_cols) - set(q_cols))[:5]
         extra = sorted(set(q_cols) - set(ref_cols))[:5]
+        reordered = (set(ref_cols) == set(q_cols))
+        if reordered:
+            raise ShapeMismatchError(
+                f"action column order differs; reference: {ref_cols}; quantized: {q_cols}"
+            )
         raise ShapeMismatchError(
             f"action columns differ; missing in quantized: {missing}; extra: {extra}"
         )

@@ -1,5 +1,18 @@
 # Changelog — policy-parity
 
+v1.4.0 — 2026-10-23
+
+## Round-6 independent clean review (fresh reviewer, cold reading)
+- P2-1 (fixed): the action-column check is now an ordered comparison rather
+  than a set comparison. A permutation (same column names, different order)
+  used to pass the set check and was then paired positionally, silently
+  comparing the wrong streams; it now raises a distinct "column order differs"
+  ShapeMismatchError (exit 3). Renames continue to be rejected.
+- P2-2 (not a defect): the reviewer's "default mode prints a literal REPORT"
+  was an artifact of the abbreviated paste; the shipped code renders a full
+  human-readable report via `format_report`.
+- New test: column-order permutation is rejected. Suite: 46 -> 47.
+
 v1.3.0 — 2026-10-23
 
 ## Round-5 independent technical review (fresh reviewer, cold reading)
