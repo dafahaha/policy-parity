@@ -66,6 +66,15 @@ def test_ragged_rows_raise(tmp_path: Path):
         pp.load_action_matrix(p, None)
 
 
+def test_bare_index_like_column_rejected(tmp_path: Path):
+    # R9 P2-1: a file exporting only a `step` column must not be treated as a
+    # one-dimensional action stream (step numbers polluting MAE/cosine).
+    p = tmp_path / "ref.csv"
+    _write(p, ["step"], [[0], [1], [2]])
+    with pytest.raises(ValueError, match="no action columns"):
+        pp.load_action_matrix(p, None)
+
+
 def test_missing_index_column_raises(tmp_path: Path):
     p = tmp_path / "ref.csv"
     _write(p, ["a0"], [[1.0]])

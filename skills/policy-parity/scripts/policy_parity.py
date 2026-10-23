@@ -67,8 +67,8 @@ def load_action_matrix(
             non_index = [f for f in fields if f.lower() not in INDEX_NAMES]
             if non_index:
                 value_cols = non_index
-            elif len(fields) == 1:
-                # Exactly one unnamed/non-index column: it is the action stream.
+            elif len(fields) == 1 and fields[0].lower() not in INDEX_NAMES:
+                # Exactly one non-index column: it is the action stream.
                 value_cols = fields
             else:
                 # Only index-like columns (e.g. a bare `step` file): there is no
@@ -343,7 +343,13 @@ def main(argv: list[str] | None = None) -> int:
     ap = _Parser(description="Offline FP32-vs-quantized action parity checker (stdlib).")
     ap.add_argument("reference", help="reference (FP32) action CSV")
     ap.add_argument("quantized", help="quantized/exported action CSV")
-    ap.add_argument("--index-column", default=None, help="shared row index column (e.g. step)")
+    ap.add_argument(
+        "--index-column", default=None,
+        help="shared row index column (e.g. step). Without it, columns named "
+        "step/index/timestep/t/time/frame/episode are auto-excluded and every "
+        "other numeric column is treated as an action; if your index has a "
+        "different name (tick/frame_idx/...), pass this flag explicitly",
+    )
     ap.add_argument("--tol", type=float, default=DEFAULT_TOL, help="max absolute |delta| (default 0.05)")
     ap.add_argument("--cos-min", type=float, default=DEFAULT_COS_MIN, help="cosine floor (default 0.99)")
     ap.add_argument("--json", action="store_true")

@@ -1,5 +1,16 @@
 # Changelog — policy-parity
 
+v1.7.0 — 2026-10-23
+
+## Round-9 independent clean review (fresh reviewer, cold reading)
+- P2-1 (fixed): a single index-like column (a bare `step` file) is no longer
+  treated as a one-dimensional action stream; only a genuinely non-index
+  single column is.
+- P2-2 (documented): the auto-detection index-name list and the need to pass
+  `--index-column` for differently named index columns (tick/frame_idx/...)
+  are now stated in the CLI help.
+- Suite: 52 tests (1 added).
+
 v1.6.0 — 2026-10-23
 
 ## Round-8 independent clean review (fresh reviewer, cold reading)
