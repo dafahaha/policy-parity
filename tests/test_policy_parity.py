@@ -385,3 +385,28 @@ def test_usage_error_exits_one():
     with pytest.raises(SystemExit) as e:
         pp.main(["only-one-file"])
     assert e.value.code == 1
+
+
+# ---- R8 review fixes ----
+
+def test_duplicate_header_raises(tmp_path: Path):
+    # P2-1: DictReader silently merges duplicate headers; reject up front.
+    p = tmp_path / "ref.csv"
+    p.write_text("a0,a0,a1\n1,1,2\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="duplicate header"):
+        pp.load_action_matrix(p, None)
+
+
+def test_max_at_falls_back_when_all_zero(tmp_path: Path):
+    # P2-2: identical streams must not render a dangling "at ".
+    worst, where = pp.max_abs_deviation([([1.0], [1.0])])
+    assert worst == 0.0 and where == "(all deltas zero)"
+
+
+def test_empty_index_column_exits_one(tmp_path: Path):
+    # P2-3: --index-column "" is not the same as omitted; reject.
+    r = tmp_path / "r.csv"
+    q = tmp_path / "q.csv"
+    _write(r, ["a0"], [[1.0]])
+    _write(q, ["a0"], [[1.0]])
+    assert pp.main([str(r), str(q), "--index-column", ""]) == 1

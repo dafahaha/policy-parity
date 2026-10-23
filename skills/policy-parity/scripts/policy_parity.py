@@ -54,6 +54,11 @@ def load_action_matrix(
         if reader.fieldnames is None:
             raise ValueError(f"{path.name}: empty CSV")
         fields = list(reader.fieldnames)
+        # Duplicate header names are silently merged by DictReader (it keeps the
+        # last value), which would create a phantom double-weighted dimension.
+        if len(fields) != len(set(fields)):
+            dup = sorted(f for f, c in Counter(fields).items() if c > 1)
+            raise ValueError(f"{path.name}: duplicate header column(s): {dup}")
         if index_column:
             if index_column not in fields:
                 raise ValueError(f"{path.name}: index column {index_column!r} not in {fields}")
@@ -184,7 +189,7 @@ def per_dim_mae(pairs: list[tuple[list[float], list[float]]]) -> list[float]:
 
 def max_abs_deviation(pairs: list[tuple[list[float], list[float]]]) -> tuple[float, str]:
     worst = 0.0
-    where = ""
+    where = "(all deltas zero)"
     for step, (a, b) in enumerate(pairs):
         for d, (x, y) in enumerate(zip(a, b)):
             delta = abs(x - y)
@@ -344,6 +349,12 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--output", default=None)
     args = ap.parse_args(argv)
+
+    # An explicit empty string is not the same as "no index column" (None);
+    # reject it rather than silently switching to auto-detection.
+    if args.index_column is not None and args.index_column.strip() == "":
+        print("policy-parity: --index-column must name a header, got an empty string", file=sys.stderr)
+        return 1
 
     if not (math.isfinite(args.tol) and args.tol > 0):
         print("policy-parity: --tol must be a finite number > 0 (action units)", file=sys.stderr)

@@ -1,5 +1,17 @@
 # Changelog — policy-parity
 
+v1.6.0 — 2026-10-23
+
+## Round-8 independent clean review (fresh reviewer, cold reading)
+- P2-1 (fixed): duplicate header columns are now rejected up front. DictReader
+  silently merges them, which would otherwise create a phantom double-weighted
+  dimension.
+- P2-2 (fixed): `max_at` falls back to "(all deltas zero)" instead of rendering
+  a dangling "at " when every delta is zero.
+- P2-3 (fixed): an explicit empty `--index-column ""` is rejected (it is not
+  the same as the omitted/None case).
+- Suite: 51 tests (3 added).
+
 v1.5.0 — 2026-10-23
 
 ## Round-7 independent clean review (fresh reviewer, cold reading)
