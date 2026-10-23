@@ -25,6 +25,7 @@ import csv
 import json
 import math
 import sys
+from collections import Counter
 from pathlib import Path
 
 DEFAULT_TOL = 0.05          # absolute max |delta| per step (action units)
@@ -82,7 +83,16 @@ def load_action_matrix(
                 raise ShapeMismatchError(
                     f"{path.name} row {i}: {len(extra)} extra field(s) beyond the header (ragged row)"
                 )
-            labels.append(str(row[index_column]).strip() if index_column else str(i - 2))
+            if index_column:
+                label_raw = row[index_column]
+                label_text = "" if label_raw is None else str(label_raw).strip()
+                if label_text == "":
+                    raise ShapeMismatchError(
+                        f"{path.name} row {i}: blank index label in {index_column!r}"
+                    )
+                labels.append(label_text)
+            else:
+                labels.append(str(i - 2))
             vec: list[float] = []
             for col in value_cols:
                 raw = row.get(col)
@@ -132,12 +142,14 @@ def align(ref_labels: list[str], ref: list[list[float]],
             f"action columns differ; missing in quantized: {missing}; extra: {extra}"
         )
     if labeled:
-        if len(ref_labels) != len(set(ref_labels)):
-            dupes = sorted({l for l in ref_labels if ref_labels.count(l) > 1})[:5]
-            raise ShapeMismatchError(f"reference CSV has duplicate index label(s): {dupes}")
-        if len(q_labels) != len(set(q_labels)):
-            dupes = sorted({l for l in q_labels if q_labels.count(l) > 1})[:5]
-            raise ShapeMismatchError(f"quantized CSV has duplicate index label(s): {dupes}")
+        ref_counts = Counter(ref_labels)
+        ref_dupes = sorted(l for l, c in ref_counts.items() if c > 1)[:5]
+        if ref_dupes:
+            raise ShapeMismatchError(f"reference CSV has duplicate index label(s): {ref_dupes}")
+        q_counts = Counter(q_labels)
+        q_dupes = sorted(l for l, c in q_counts.items() if c > 1)[:5]
+        if q_dupes:
+            raise ShapeMismatchError(f"quantized CSV has duplicate index label(s): {q_dupes}")
         rset, qset = set(ref_labels), set(q_labels)
         if rset != qset:
             missing = sorted(rset - qset)[:5]

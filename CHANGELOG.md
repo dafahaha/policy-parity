@@ -1,5 +1,13 @@
 # Changelog — policy-parity
 
+v1.5.0 — 2026-10-23
+
+## Round-7 independent clean review (fresh reviewer, cold reading)
+- A blank index label (with `--index-column`) is now rejected fail-closed rather
+  than being aligned as an empty label.
+- Duplicate-label detection now uses a single `Counter` pass (was O(n^2)).
+- Suite: 48 tests (1 added).
+
 v1.4.0 — 2026-10-23
 
 ## Round-6 independent clean review (fresh reviewer, cold reading)

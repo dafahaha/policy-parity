@@ -305,6 +305,14 @@ def test_duplicate_index_label_raises():
         pp.align(["a", "a"], [[1.0], [2.0]], ["a", "a"], [[1.0], [2.0]], labeled=True)
 
 
+def test_blank_index_label_raises(tmp_path: Path):
+    # A blank index label must fail closed rather than silently aligning as "".
+    p = tmp_path / "x.csv"
+    _write(p, ["step", "a0"], [[0, 1.0], ["", 2.0]])
+    with pytest.raises(pp.ShapeMismatchError, match="blank index label"):
+        pp.load_action_matrix(p, "step")
+
+
 def test_arg_tol_must_be_positive(tmp_path: Path):
     r, q = _two_files(tmp_path, [[0, 0.1]], [[0, 0.1]])
     assert pp.main([str(r), str(q), "--tol", "0"]) == 1
