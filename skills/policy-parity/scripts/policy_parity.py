@@ -67,9 +67,6 @@ def load_action_matrix(
             non_index = [f for f in fields if f.lower() not in INDEX_NAMES]
             if non_index:
                 value_cols = non_index
-            elif len(fields) == 1 and fields[0].lower() not in INDEX_NAMES:
-                # Exactly one non-index column: it is the action stream.
-                value_cols = fields
             else:
                 # Only index-like columns (e.g. a bare `step` file): there is no
                 # action data; do not treat row numbers as actions.

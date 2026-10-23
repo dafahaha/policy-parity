@@ -1,5 +1,10 @@
 # Changelog — policy-parity
 
+v1.8.0 — 2026-10-23
+- P2-1 (fixed): removed an unreachable dead branch in the auto-detection path
+  after the single-index-column guard was added.
+- Suite: 52 pytest.
+
 v1.7.0 — 2026-10-23
 
 ## Round-9 independent clean review (fresh reviewer, cold reading)
