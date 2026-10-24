@@ -30,8 +30,16 @@ dump 好的两份对齐动作 CSV，纯标准库，可以进 CI。
 
 无需编译，无需依赖。
 
-- Claude Code：`claude --plugin-dir ./policy-parity`，或在
-  `.claude-plugin/marketplace.json` 注册本地市场。
+- Claude Code（GitHub 个人市场）：
+
+  ```bash
+  claude plugin marketplace add dafahaha/policy-parity
+  claude plugin install policy-parity@dafahaha-skills
+  ```
+
+  会话内：先 `/plugin marketplace add dafahaha/policy-parity`，再
+  `/plugin install policy-parity@dafahaha-skills`。
+- Claude Code（本地开发）：`claude --plugin-dir ./policy-parity`。
 - 便携 skill（Codex/Cursor/Gemini CLI/Roo Code）：把 `skills/policy-parity/`
   复制到客户端的 skills 目录。
 
