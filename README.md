@@ -41,11 +41,11 @@ No build, no dependencies.
 
   ```bash
   claude plugin marketplace add dafahaha/policy-parity
-  claude plugin install policy-parity@dafahaha-skills
+  claude plugin install policy-parity@policy-parity
   ```
 
   In a session: `/plugin marketplace add dafahaha/policy-parity`, then
-  `/plugin install policy-parity@dafahaha-skills`.
+  `/plugin install policy-parity@policy-parity`.
 - Claude Code (local development): `claude --plugin-dir ./policy-parity`.
 - Portable skill (Codex/Cursor/Gemini CLI/Roo Code): copy `skills/policy-parity/`
   into the client's skills directory.

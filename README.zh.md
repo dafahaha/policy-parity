@@ -34,11 +34,11 @@ dump 好的两份对齐动作 CSV，纯标准库，可以进 CI。
 
   ```bash
   claude plugin marketplace add dafahaha/policy-parity
-  claude plugin install policy-parity@dafahaha-skills
+  claude plugin install policy-parity@policy-parity
   ```
 
   会话内：先 `/plugin marketplace add dafahaha/policy-parity`，再
-  `/plugin install policy-parity@dafahaha-skills`。
+  `/plugin install policy-parity@policy-parity`。
 - Claude Code（本地开发）：`claude --plugin-dir ./policy-parity`。
 - 便携 skill（Codex/Cursor/Gemini CLI/Roo Code）：把 `skills/policy-parity/`
   复制到客户端的 skills 目录。
